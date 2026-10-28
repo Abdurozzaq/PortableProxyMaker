@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Proxy Maker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='4' y='4' width='56' height='56' fill='%23FFD43B' stroke='%23111' stroke-width='6'/><path d='M20 44V20h14a8 8 0 010 16H20' fill='none' stroke='%23111' stroke-width='6'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== Login ===== -->
+<section id="login-view" class="login-wrap" hidden>
+  <form id="login-form" class="card login-card">
+    <div class="logo big"><span class="logo-mark">P</span>PROXY<span class="slash">//</span>MAKER</div>
+    <p class="muted">Multi-port proxy factory + traffic inspector</p>
+    <label class="field">
+      <span>Username</span>
+      <input name="username" autocomplete="username" required>
+    </label>
+    <label class="field">
+      <span>Password</span>
+      <input name="password" type="password" autocomplete="current-password" required>
+    </label>
+    <p id="login-error" class="form-error" hidden></p>
+    <button class="btn btn-yellow btn-block" type="submit">LOGIN →</button>
+  </form>
+</section>
+
+<!-- ===== App ===== -->
+<div id="app-view" hidden>
+  <header class="topbar">
+    <div class="logo"><span class="logo-mark">P</span>PROXY<span class="slash">//</span>MAKER</div>
+    <nav class="tabs" id="nav">
+      <button data-page="dashboard" class="tab active">Dashboard</button>
+      <button data-page="proxies" class="tab">Proxies</button>
+      <button data-page="traffic" class="tab">Traffic</button>
+      <button data-page="settings" class="tab">Settings</button>
+    </nav>
+    <div class="topbar-right">
+      <span id="live-dot" class="live-dot" title="Live stream">LIVE</span>
+      <button id="theme-toggle" class="btn btn-sm btn-ghost" title="Toggle theme">◐</button>
+      <button id="logout-btn" class="btn btn-sm btn-ghost">Logout</button>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Dashboard -->
+    <section class="page" id="page-dashboard">
+      <div class="page-head">
+        <h1>Dashboard</h1>
+        <span class="muted">Last 24 hours</span>
+      </div>
+      <div class="stat-grid" id="stat-grid"></div>
+      <div class="dash-grid">
+        <div class="card span-2">
+          <div class="card-head"><h3>Requests / minute</h3><span class="muted">last 60 min</span></div>
+          <div class="bars" id="chart-rpm"></div>
+          <div class="legend"><span><i class="sw sw-blue"></i>OK</span><span><i class="sw sw-red"></i>Error</span></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Status codes</h3></div>
+          <div id="status-groups" class="hbars"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Top hosts</h3></div>
+          <ol id="top-hosts" class="rank-list"></ol>
+        </div>
+        <div class="card span-2">
+          <div class="card-head"><h3>Recent errors</h3><button class="btn btn-sm" data-goto="traffic" data-status="error">See all</button></div>
+          <div id="recent-errors"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Proxies -->
+    <section class="page" id="page-proxies" hidden>
+      <div class="page-head">
+        <h1>Proxies</h1>
+        <div class="row gap">
+          <input id="proxy-search" class="input" placeholder="Search name / port…">
+          <button class="btn btn-yellow" id="new-proxy-btn">+ New proxy</button>
+        </div>
+      </div>
+      <div id="proxy-grid" class="proxy-grid"></div>
+    </section>
+
+    <!-- Traffic -->
+    <section class="page" id="page-traffic" hidden>
+      <div class="page-head">
+        <h1>Traffic</h1>
+        <div class="row gap">
+          <button class="btn btn-sm" id="live-toggle">❚❚ Pause</button>
+          <button class="btn btn-sm" id="refresh-logs">↻ Refresh</button>
+          <button class="btn btn-sm btn-red" id="clear-logs">Clear logs</button>
+        </div>
+      </div>
+      <div class="card filters">
+        <select id="f-proxy" class="input"><option value="">All proxies</option></select>
+        <select id="f-method" class="input">
+          <option value="">Any method</option>
+          <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option>
+          <option>DELETE</option><option>OPTIONS</option><option>HEAD</option><option>CONNECT</option>
+        </select>
+        <select id="f-status" class="input">
+          <option value="">Any status</option>
+          <option value="2xx">2xx</option><option value="3xx">3xx</option><option value="4xx">4xx</option>
+          <option value="5xx">5xx</option><option value="error">Errors</option>
+        </select>
+        <select id="f-kind" class="input">
+          <option value="">Any type</option>
+          <option value="http">HTTP</option><option value="https">HTTPS (decrypted)</option>
+          <option value="tunnel">Tunnel (CONNECT)</option><option value="ws">WebSocket</option>
+        </select>
+        <input id="f-q" class="input grow" placeholder="Search URL, host, client IP, error…">
+      </div>
+      <div class="card table-card">
+        <div class="table-scroll">
+          <table class="traffic-table">
+            <thead>
+              <tr>
+                <th>Time</th><th>Proxy</th><th>Method</th><th>Status</th><th>Host</th><th>Path</th>
+                <th>Type</th><th class="num">Size</th><th class="num">Time</th>
+              </tr>
+            </thead>
+            <tbody id="traffic-body"></tbody>
+          </table>
+        </div>
+        <div id="traffic-empty" class="empty" hidden>No traffic yet. Send a request through one of your proxies.</div>
+        <div class="table-foot"><button class="btn btn-sm" id="load-more">Load older</button></div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section class="page" id="page-settings" hidden>
+      <div class="page-head"><h1>Settings</h1></div>
+      <div class="settings-grid">
+        <div class="card">
+          <div class="card-head"><h3>HTTPS inspection CA</h3><span class="tag tag-purple">MITM</span></div>
+          <p>Proxies with <b>MITM</b> on decrypt HTTPS so you can see headers and bodies. The client device must trust this CA certificate, otherwise TLS handshakes fail (you will see that as an error in Traffic).</p>
+          <p class="mono small break" id="ca-fp"></p>
+          <a class="btn btn-purple" href="api/ca.crt" download>⬇ Download ca.crt</a>
+          <details class="howto">
+            <summary>How to install the CA</summary>
+            <ul>
+              <li><b>Windows:</b> double-click ca.crt → Install Certificate → Local Machine → "Trusted Root Certification Authorities".</li>
+              <li><b>macOS:</b> open in Keychain Access → System → set "Always Trust".</li>
+              <li><b>Ubuntu/Debian:</b> <code>sudo cp ca.crt /usr/local/share/ca-certificates/ppm.crt &amp;&amp; sudo update-ca-certificates</code></li>
+              <li><b>Android:</b> Settings → Security → Encryption &amp; credentials → Install a certificate → CA. (Apps only trust user CAs if they opt in.)</li>
+              <li><b>iOS:</b> install the profile, then Settings → General → About → Certificate Trust Settings → enable.</li>
+              <li><b>curl:</b> <code>curl --cacert ca.crt -x http://user:pass@host:port https://example.com</code></li>
+              <li><b>Node.js:</b> <code>NODE_EXTRA_CA_CERTS=ca.crt</code> · <b>Python requests:</b> <code>REQUESTS_CA_BUNDLE=ca.crt</code></li>
+            </ul>
+          </details>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Banned ports</h3><span class="tag tag-red">Blacklist</span></div>
+          <p class="muted">Ports here are never picked again when creating or rotating proxies.</p>
+          <form id="ban-form" class="row gap">
+            <input name="port" class="input" type="number" min="1" max="65535" placeholder="Port" required>
+            <input name="reason" class="input grow" placeholder="Reason (optional)">
+            <button class="btn btn-red btn-sm" type="submit">Ban</button>
+          </form>
+          <div id="banned-list" class="banned-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>System</h3></div>
+          <dl id="system-info" class="kv"></dl>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Quick test</h3></div>
+          <p class="muted">From any machine:</p>
+          <pre class="code" id="quick-test"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Detail drawer -->
+<aside id="drawer" class="drawer" hidden>
+  <div class="drawer-panel">
+    <div class="drawer-head">
+      <div id="drawer-title" class="drawer-title"></div>
+      <div class="row gap">
+        <button class="btn btn-sm" id="copy-curl">Copy cURL</button>
+        <button class="btn btn-sm" id="copy-url">Copy URL</button>
+        <button class="btn btn-sm btn-ghost" id="drawer-close" title="Close">✕</button>
+      </div>
+    </div>
+    <div class="subtabs" id="drawer-tabs">
+      <button data-tab="overview" class="subtab active">Overview</button>
+      <button data-tab="request" class="subtab">Request</button>
+      <button data-tab="response" class="subtab">Response</button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </div>
+</aside>
+
+<!-- Modal -->
+<div id="modal" class="modal" hidden>
+  <div class="modal-card card">
+    <div class="card-head"><h3 id="modal-title"></h3><button class="btn btn-sm btn-ghost" data-close>✕</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toasts" class="toasts"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

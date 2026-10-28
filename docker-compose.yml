@@ -1,0 +1,21 @@
+services:
+  proxymaker:
+    build: .
+    image: portable-proxy-maker:latest
+    container_name: portable-proxy-maker
+    restart: unless-stopped
+    # Host networking lets every proxy port created at runtime be reachable
+    # immediately, without re-publishing ports or restarting the container.
+    network_mode: host
+    env_file: .env
+    volumes:
+      - ./data:/data
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

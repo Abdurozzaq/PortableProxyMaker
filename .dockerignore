@@ -1,0 +1,6 @@
+.git
+data
+app/node_modules
+.env
+*.md
+scripts

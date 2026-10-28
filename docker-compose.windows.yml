@@ -1,0 +1,16 @@
+# Override for Docker Desktop on Windows (host networking is not available there).
+# Ports are published explicitly, so only PROXY_PORT_MIN..PROXY_PORT_MAX is reachable.
+# Used automatically through COMPOSE_FILE in .env (set by scripts/install.ps1).
+services:
+  proxymaker:
+    network_mode: bridge
+    ports:
+      - "${PANEL_PORT:-8080}:${PANEL_PORT:-8080}"
+      - "${PROXY_PORT_MIN:-20000}-${PROXY_PORT_MAX:-20199}:${PROXY_PORT_MIN:-20000}-${PROXY_PORT_MAX:-20199}"
+    volumes:
+      # Named volume instead of a Windows bind mount: SQLite WAL locking is unreliable on
+      # Windows-backed mounts.
+      - ppm-data:/data
+
+volumes:
+  ppm-data:
